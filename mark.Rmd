@@ -1,0 +1,134 @@
+---
+title: "Retail Sector Forcasting"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+The data used for this project have been taken from the Australian Bureau of Statistics. One is on retail turnover for industries and the other one is on demographic statistics.
+
+## Business Task
+
+You are a data scientist working for an Australian retail chain operating in the clothing a retailing industry.
+
+To date the company has only been running operations in New South Wales which is a state in Australia.
+
+However the board of directors is considering an expansion into one of the following three states:
+* Queensland
+* Victoria
+* Western Australia
+
+You have been asked to assess the business environments for the industry in question in each of these three states and present your findings to the board of directors in person.
+### Libraries
+```{r}
+library(tidyverse)
+library(caTools)
+library(readxl)
+library(scales)
+```
+
+### uploading files
+```{r}
+competitors <- read.csv("Competitor-Research.csv")
+demographics <- read_xlsx("Australian-Demographic-Statistics.xlsx")
+turnover <- read_xlsx("Retail-Turnover-State-by-Industry-Subgroup2.xlsx")
+
+```
+###view competitors table
+```{r}
+head(competitors)
+
+```
+###pivot competitors table to a more machine friendly format
+```{r}
+competitorl <- pivot_longer(competitors,cols = c(QLD, WA, VIC, NSW), names_to = "state", values_to = "net_profit_margins")
+head(competitorl)
+```
+###remove unwanted characters and transform character to numeric type
+```{r}
+competitorl$net_profit_margins <- str_remove(competitorl$net_profit_margins,"[%]")
+
+competitorl$net_profit_margins <- as.numeric(competitorl$net_profit_margins)
+
+head(competitorl)
+
+
+```
+#Create Boxplot to have better insights our competitors and determined states with best potential
+```{r}
+boxplot <- ggplot(competitorl, aes(x = state, y = net_profit_margins, color = state)) + 
+  geom_boxplot(size=1.2, alpha=.6) + 
+  geom_jitter() +
+  xlab("State") + ylab("Net Profit Margin %") +
+  theme(legend.position = "none")
+
+boxplot
+```
+###Filter retail turnover data to show only data starting from 2000
+```{r}
+turnover <- turnover %>%
+  filter(Date>= as.Date("2000-01-01"))
+
+head(turnover)
+```
+###pivot turnover table to a more machine friendly format
+```{r}
+turnover <- pivot_longer(turnover, cols = starts_with("Turnover"), values_to = "turnover_$m")
+
+```
+###Seperate columns
+```{r}
+turnover <- separate(turnover, name, into = c('Turnover','State','Industry'), sep = ';')
+
+turnover <- subset(turnover, select = -c(Turnover))
+
+head(turnover)
+```
+###Filter to see clothing retail industry only
+```{r}
+turnoverfinal <- turnover %>%
+  filter(Industry == " Clothing retailing ")
+head(turnoverfinal)
+```
+As you can see 0 rows are returned, couldn't find source of the problem so my workaround was to filter the data in Excel
+```{r}
+# write.csv(turnover, file = "C:\\Users\\username\\Documents\\folderr\\turnover.csv")
+
+```
+
+In Excel after I filtered the data to only show the four states of interest in the clothing retailing industry I uploaded the file
+```{r}
+turnover <- read_xlsx("turnover.xlsx")
+
+head(turnover)
+```
+###Plot industry trend over the years
+```{r}
+Historicaltrend <- ggplot(turnover, aes(x=Date, y= `Turnover $M`, color= State))+ 
+  geom_line()+
+  facet_wrap(~State, scales="free_y")+
+  theme(legend.position = "none")+
+  geom_smooth(method = 'lm')
+
+Historicaltrend
+```
+
+
+
+
+
+
+
+
+
+You can also embed plots, for example:
+
+```{r pressure, echo=FALSE}
+plot(pressure)
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
